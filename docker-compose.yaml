@@ -1,0 +1,10 @@
+version: '3'
+services:
+  web:
+    build: .
+    environment:
+      WIKI_PORT: 8088
+    ports:
+      - "8088:8088"
+    volumes:
+      - .:/go/src/wiki
