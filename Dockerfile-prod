@@ -1,0 +1,24 @@
+FROM golang:1.10-stretch as builder
+
+RUN go get -d -u github.com/golang/dep && \
+    cd $(go env GOPATH)/src/github.com/golang/dep && \
+    export DEP_LATEST=$(git describe --abbrev=0 --tags) && \
+    git checkout $DEP_LATEST && \
+    go install -ldflags="-X main.version=$DEP_LATEST" ./cmd/dep && \
+    git checkout master
+
+RUN go get github.com/codegangsta/gin
+
+COPY . /go/src/wiki
+WORKDIR /go/src/wiki
+RUN dep ensure
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main wiki.go
+
+
+FROM alpine:3.7
+RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
+WORKDIR /root
+RUN mkdir data tmpl
+COPY --from=builder /go/src/wiki/main /root/
+COPY --from=builder /go/src/wiki/tmpl /root/tmpl/
+CMD ["./main"]
